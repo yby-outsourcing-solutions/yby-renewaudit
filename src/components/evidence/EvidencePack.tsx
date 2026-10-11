@@ -16,12 +16,12 @@ export function EvidencePack({ result }: { result: ReconciliationResult }) {
   }
 
   return (
-    <section className="panel-card">
+    <section className="panel-card evidence-pack-panel">
       <div className="panel-header">
         <h2>
           🛡️ Evidence Pack & Audit Findings
         </h2>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px" }} className="no-print">
           <button className="btn btn-secondary btn-sm" onClick={handleExportJSON}>
             📥 Export JSON Evidence
           </button>

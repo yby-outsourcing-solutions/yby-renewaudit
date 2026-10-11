@@ -432,10 +432,129 @@ textarea.input-box:focus {
   color: var(--accent-emerald);
 }
 
-/* Print Styles */
+/* Print Styles & Audit Report Isolation */
 @media print {
-  body { background: white; color: black; }
-  .panel-card, .metric-card { background: white; border: 1px solid #ccc; color: black; box-shadow: none; }
-  .btn, .redact-container, .dropzone-section { display: none; }
-  .brand-text h1 { background: none; -webkit-text-fill-color: black; color: black; }
+  /* 1. Strict Isolation: Hide all administrative modals, navigation, commercial upgrade elements, and non-report controls */
+  .no-print,
+  .license-modal-container,
+  .app-navigation-tabs,
+  .executive-metrics-grid,
+  .app-footer,
+  .header-status,
+  .status-dot,
+  .btn,
+  .redact-container,
+  .dropzone-section {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  header.app-header {
+    margin-bottom: 24px !important;
+    padding-bottom: 16px !important;
+    border-bottom: 2px solid #0f172a !important;
+  }
+
+  .brand-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .logo-badge {
+    background: #0f172a !important;
+    color: white !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    font-size: 1rem !important;
+  }
+
+  .brand-text h1 {
+    background: none !important;
+    -webkit-text-fill-color: #0f172a !important;
+    color: #0f172a !important;
+    font-size: 1.5rem !important;
+  }
+
+  .brand-text p {
+    color: #475569 !important;
+    font-size: 0.9rem !important;
+  }
+
+  .evidence-pack-panel {
+    background: white !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    padding: 24px !important;
+    page-break-inside: avoid;
+  }
+
+  .panel-header h2 {
+    color: #0f172a !important;
+    font-size: 1.3rem !important;
+  }
+
+  .badge-emerald {
+    background: #ecfdf5 !important;
+    color: #065f46 !important;
+    border: 1px solid #a7f3d0 !important;
+  }
+
+  .badge-rose {
+    background: #fff1f2 !important;
+    color: #9f1239 !important;
+    border: 1px solid #fecdd3 !important;
+  }
+
+  .badge-amber {
+    background: #fffbeb !important;
+    color: #92400e !important;
+    border: 1px solid #fde68a !important;
+  }
+
+  .finding-card {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin-bottom: 16px !important;
+    padding: 16px !important;
+  }
+
+  .finding-title {
+    color: #0f172a !important;
+  }
+
+  .finding-delta {
+    color: #b91c1c !important;
+    font-weight: 800 !important;
+  }
+
+  .formula-box {
+    background: #f1f5f9 !important;
+    color: #0369a1 !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .source-tag {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    font-weight: 600 !important;
+  }
 }
+

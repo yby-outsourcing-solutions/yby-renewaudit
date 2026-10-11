@@ -96,7 +96,10 @@ export function LicenseActivationModal({ currentState, onStateChange, onClose }:
   }
 
   return (
-    <div style={{ background: "var(--surface-color, rgba(255,255,255,0.03))", padding: "20px", borderRadius: "12px", border: "1px solid var(--border-color, rgba(255,255,255,0.1))", marginBottom: "20px" }}>
+    <div
+      className="license-modal-container no-print"
+      style={{ background: "var(--surface-color, rgba(255,255,255,0.03))", padding: "20px", borderRadius: "12px", border: "1px solid var(--border-color, rgba(255,255,255,0.1))", marginBottom: "20px" }}
+    >
       <div className="panel-header">
         <div>
           <h2>🔑 License & Commercial Entitlement</h2>

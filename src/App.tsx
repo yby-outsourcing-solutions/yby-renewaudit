@@ -142,7 +142,7 @@ export default function App() {
             <p>Audit the renewal before you approve it.</p>
           </div>
         </div>
-        <div className="header-status" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div className="header-status no-print" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button
             className="btn btn-secondary btn-sm"
             style={{ fontSize: "0.8rem", padding: "4px 10px", borderColor: entitlement.status === "ACTIVE" ? "rgba(16, 185, 129, 0.4)" : "rgba(244, 63, 94, 0.4)" }}
@@ -164,7 +164,7 @@ export default function App() {
       )}
 
       {/* Executive Metrics Overview */}
-      <div className="metrics-grid">
+      <div className="metrics-grid executive-metrics-grid no-print">
         <div className="metric-card">
           <div className="metric-label">Billed Price Overcharge</div>
           <div className="metric-value rose">${priceCapVariance > 0 ? priceCapVariance.toLocaleString() : 0}</div>
@@ -188,7 +188,7 @@ export default function App() {
       </div>
 
       {/* Tabbed Navigation Bar */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
+      <div className="app-navigation-tabs no-print" style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
         <button
           className={`btn ${activeTab === "intake" ? "btn-primary" : "btn-secondary"}`}
           onClick={() => setActiveTab("intake")}
@@ -334,6 +334,7 @@ export default function App() {
 
       {/* Global Commercial & Legal Compliance Footer */}
       <footer
+        className="app-footer no-print"
         style={{
           marginTop: "40px",
           padding: "24px 0",

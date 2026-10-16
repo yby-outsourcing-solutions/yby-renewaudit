@@ -462,19 +462,19 @@ describe("Serverless Razorpay Checkout & Webhook Security Suite", () => {
     const res1 = parseDatabaseConfig(malformedUri);
     expect(res1.host).toBe("aws-0-ap-south-1.pooler.supabase.com");
     expect(res1.port).toBe(6543);
-    expect(res1.user).toBe("postgres.jqwwpbhupreecmdkvmtyc");
+    expect(res1.user).toBe("postgres.jqwwpbupreecmdkvmtyc");
     expect(res1.password).toBe("MySecretPass123");
 
     // Test unencoded '@' in password
-    const unencodedAtUri = "postgresql://postgres.jqwwpbhupreecmdkvmtyc:Secret@123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+    const unencodedAtUri = "postgresql://postgres.jqwwpbupreecmdkvmtyc:Secret@123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
     const res2 = parseDatabaseConfig(unencodedAtUri);
     expect(res2.host).toBe("aws-0-ap-south-1.pooler.supabase.com");
     expect(res2.port).toBe(6543);
-    expect(res2.user).toBe("postgres.jqwwpbhupreecmdkvmtyc");
+    expect(res2.user).toBe("postgres.jqwwpbupreecmdkvmtyc");
     expect(res2.password).toBe("Secret@123");
 
     // Test percent-encoded '%40' in password
-    const encodedAtUri = "postgresql://postgres.jqwwpbhupreecmdkvmtyc:Secret%40123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+    const encodedAtUri = "postgresql://postgres.jqwwpbupreecmdkvmtyc:Secret%40123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
     const res3 = parseDatabaseConfig(encodedAtUri);
     expect(res3.password).toBe("Secret@123");
   });

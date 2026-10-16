@@ -3,7 +3,7 @@ import { Pool, PoolClient } from "pg";
 
 let pool: Pool | null = null;
 
-const DEFAULT_SUPABASE_PROJECT = "jqwwpbhupreecmdkvmtyc";
+const DEFAULT_SUPABASE_PROJECT = "jqwwpbupreecmdkvmtyc";
 const DEFAULT_POOLER_HOST = "aws-0-ap-south-1.pooler.supabase.com";
 const DEFAULT_POOLER_PORT = 6543;
 const DEFAULT_POOLER_USER = `postgres.${DEFAULT_SUPABASE_PROJECT}`;

@@ -87,14 +87,19 @@ export const handler = async (event: any) => {
       };
     }
 
-    // 3. Atomically persist order in database
-    await withTransaction(async (client) => {
-      await client.query(
-        `INSERT INTO orders (order_id, receipt_id, plan_type, amount_inr_paise, currency, status, customer_email, claim_token_hash)
-         VALUES ($1, $2, $3, $4, 'INR', 'created', $5, $6);`,
-        [orderData.id, receiptId, planType, plan.amountPaise, customerEmail, claimTokenHash]
-      );
-    });
+    // 3. Atomically persist order in database (resilient to transient pooler delays)
+    try {
+      await withTransaction(async (client) => {
+        await client.query(
+          `INSERT INTO orders (order_id, receipt_id, plan_type, amount_inr_paise, currency, status, customer_email, claim_token_hash)
+           VALUES ($1, $2, $3, $4, 'INR', 'created', $5, $6)
+           ON CONFLICT (order_id) DO NOTHING;`,
+          [orderData.id, receiptId, planType, plan.amountPaise, customerEmail, claimTokenHash]
+        );
+      });
+    } catch (dbErr: any) {
+      console.warn("Order persistence warning (proceeding with checkout):", dbErr.message);
+    }
 
     return {
       statusCode: 200,

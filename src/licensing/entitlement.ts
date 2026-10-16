@@ -92,10 +92,51 @@ export async function getDeviceFingerprintHash(customSeed: string = "yby-device-
   return await sha256(data);
 }
 
+export const DEVICE_ID_STORAGE_KEY = "yby_renewaudit_device_id_v1";
+
+/**
+ * Persistent Device Identifier Generator / Resolver
+ * Generates and stores a unique persistent UUID in localStorage.
+ */
+export function getOrCreateDeviceId(): string {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
+      if (id && id.length >= 16) {
+        return id;
+      }
+      if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        id = crypto.randomUUID();
+      } else if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        id = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+      } else {
+        id = `dev_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+      }
+      localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+      return id;
+    } catch {
+      // LocalStorage access may be restricted
+    }
+  }
+  return "ephemeral_device_" + (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : "node_env");
+}
+
+/**
+ * Derives a cryptographically strong SHA-256 device hash from the persistent device identifier.
+ */
+export async function getClientDeviceHash(customDeviceId?: string): Promise<string> {
+  const deviceId = customDeviceId || getOrCreateDeviceId();
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`YBY-DEVICE-${deviceId}`);
+  return await sha256(data);
+}
+
 /**
  * Entitlement License Key Parser & Validator
  */
-export function parseLicenseKey(key: string, deviceHash: string = "default_device_hash"): EntitlementState {
+export function parseLicenseKey(key: string, deviceHash?: string): EntitlementState {
   const trimmed = (key || "").trim().toUpperCase();
 
   if (!trimmed || trimmed === "FREE" || trimmed === "DEFAULT") {

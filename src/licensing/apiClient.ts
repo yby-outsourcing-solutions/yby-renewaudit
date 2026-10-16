@@ -1,3 +1,4 @@
+// src/licensing/apiClient.ts - Production Licensing API Client Bridge
 import type { EntitlementState } from "./types";
 import { verifyLicensingNetworkPayload } from "./entitlement";
 import { ProductionLicensingService } from "./server/licensingService";
@@ -26,12 +27,18 @@ export async function verifyLicenseKeyOnline(
   }
 
   try {
-    // If external production API URL is provided, perform fetch call
-    if (apiBaseUrl) {
-      const response = await fetch(`${apiBaseUrl}/api/v1/licensing/validate`, {
+    // If production endpoint is provided or in browser with Netlify Functions active
+    const targetUrl = apiBaseUrl
+      ? `${apiBaseUrl}/licensing`
+      : typeof window !== "undefined" && window.location.hostname !== "localhost" && !window.location.hostname.includes("127.0.0.1")
+      ? "/.netlify/functions/licensing"
+      : undefined;
+
+    if (targetUrl) {
+      const response = await fetch(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ action: "validate", licenseKey, deviceHash })
       });
 
       if (!response.ok) {
@@ -56,7 +63,7 @@ export async function verifyLicenseKeyOnline(
       };
     }
 
-    // Direct isolated service handler invocation (Local/Edge execution mode)
+    // Direct isolated service handler invocation (Local/Test execution mode)
     const serverRes = ProductionLicensingService.handleValidateKeyRequest(payload);
     return {
       status: serverRes.status,

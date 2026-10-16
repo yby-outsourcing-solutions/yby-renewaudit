@@ -39,9 +39,9 @@ export function getServerConfig() {
     throw new Error("SECURITY_GUARD: Live payment processing is disabled by policy. Set RAZORPAY_ENV=test.");
   }
 
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  const keyId = process.env.RAZORPAY_KEY_ID?.trim().replace(/^["']|["']$/g, "");
+  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim().replace(/^["']|["']$/g, "");
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim().replace(/^["']|["']$/g, "");
 
   if (!keyId || !keySecret) {
     throw new Error("Missing server Razorpay credentials: RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required.");

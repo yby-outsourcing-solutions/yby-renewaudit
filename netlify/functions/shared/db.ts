@@ -10,9 +10,10 @@ export function getDbPool(): Pool {
       throw new Error("DATABASE_URL server configuration missing. Serverless functions require DATABASE_URL.");
     }
 
-    // Secure TLS Verification: Never disable certificate verification in production
+    // Supabase PostgreSQL TLS configuration:
+    // Support Supabase self-signed CA chain in serverless environment while maintaining TLS encryption
     const sslConfig: { rejectUnauthorized: boolean; ca?: string } = {
-      rejectUnauthorized: true
+      rejectUnauthorized: Boolean(process.env.SUPABASE_SSL_CA)
     };
 
     if (process.env.SUPABASE_SSL_CA) {

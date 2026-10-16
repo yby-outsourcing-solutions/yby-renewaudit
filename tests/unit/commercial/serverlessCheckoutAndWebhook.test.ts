@@ -10,6 +10,7 @@ import {
   PENDING_FULFILLMENT_STORAGE_KEY
 } from "../../../src/components/commercial/LicenseActivationModal";
 import { ProductionLicensingService } from "../../../src/licensing/server/licensingService";
+import { parseDatabaseConfig } from "../../../netlify/functions/shared/db";
 
 describe("Serverless Razorpay Checkout & Webhook Security Suite", () => {
   const testKeySecret = "test_razorpay_key_secret_2026";
@@ -453,5 +454,28 @@ describe("Serverless Razorpay Checkout & Webhook Security Suite", () => {
     sessionStorage.setItem(PENDING_FULFILLMENT_STORAGE_KEY, JSON.stringify(expiredPendingData));
     const expiredRetrieved = getPendingFulfillment();
     expect(expiredRetrieved).toBeNull();
+  });
+
+  it("13. Resilient Database URI Parsing: Recovers truncated host 'base' and handles unencoded '@' in password", () => {
+    // Test recovery when host is truncated to "base"
+    const malformedUri = "postgresql://postgres:MySecretPass123@base";
+    const res1 = parseDatabaseConfig(malformedUri);
+    expect(res1.host).toBe("aws-0-ap-south-1.pooler.supabase.com");
+    expect(res1.port).toBe(6543);
+    expect(res1.user).toBe("postgres.jqwwpbhupreecmdkvmtyc");
+    expect(res1.password).toBe("MySecretPass123");
+
+    // Test unencoded '@' in password
+    const unencodedAtUri = "postgresql://postgres.jqwwpbhupreecmdkvmtyc:Secret@123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+    const res2 = parseDatabaseConfig(unencodedAtUri);
+    expect(res2.host).toBe("aws-0-ap-south-1.pooler.supabase.com");
+    expect(res2.port).toBe(6543);
+    expect(res2.user).toBe("postgres.jqwwpbhupreecmdkvmtyc");
+    expect(res2.password).toBe("Secret@123");
+
+    // Test percent-encoded '%40' in password
+    const encodedAtUri = "postgresql://postgres.jqwwpbhupreecmdkvmtyc:Secret%40123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+    const res3 = parseDatabaseConfig(encodedAtUri);
+    expect(res3.password).toBe("Secret@123");
   });
 });

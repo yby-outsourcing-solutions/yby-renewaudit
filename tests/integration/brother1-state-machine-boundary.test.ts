@@ -147,7 +147,7 @@ describe("Brother 1 State Machine Boundary & Non-Regression Suite", () => {
 
     const valRes = ProductionLicensingService.handleValidateKeyRequest({
       licenseKey: webhookRes.provisionedKey!,
-      deviceHash: "default_device_hash"
+      deviceHash: "dev_hash_state_machine_test"
     });
 
     const newState: EntitlementState = {

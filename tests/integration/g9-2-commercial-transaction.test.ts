@@ -378,7 +378,7 @@ describe("G9.2 Commercial Transaction & Quota State Machine Integration Suite", 
 
       const valRes = ProductionLicensingService.handleValidateKeyRequest({
         licenseKey: verifiedRes.provisionedKey!,
-        deviceHash: "default_device_hash"
+        deviceHash: "dev_hash_g9_commercial_test"
       });
 
       const updatedState: EntitlementState = {

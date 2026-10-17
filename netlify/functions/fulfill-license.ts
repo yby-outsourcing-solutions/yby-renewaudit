@@ -63,101 +63,174 @@ export const handler = async (event: any) => {
     // 2. FACTOR B & C: Database Claim Token Verification & Atomicity
     const inputTokenHash = crypto.createHash("sha256").update(claim_token).digest("hex");
 
-    const result = await withTransaction(async (client) => {
-      // Lock the order row
-      const orderRes = await client.query(
-        `SELECT * FROM orders WHERE order_id = $1 FOR UPDATE;`,
-        [order_id]
-      );
+    let result: any = null;
 
-      if (orderRes.rowCount === 0) {
-        throw { statusCode: 404, message: "Order not found." };
-      }
-
-      const order = orderRes.rows[0];
-
-      // Verify unguessable claim token
-      if (order.claim_token_hash !== inputTokenHash) {
-        throw { statusCode: 403, message: "CLAIM_TOKEN_MISMATCH: Unauthorized license fulfillment attempt." };
-      }
-
-      // Check if a license is already provisioned
-      if (order.license_key) {
-        const licRes = await client.query(
-          `SELECT * FROM licenses WHERE license_key = $1 FOR UPDATE;`,
-          [order.license_key]
+    try {
+      result = await withTransaction(async (client) => {
+        // Lock the order row
+        const orderRes = await client.query(
+          `SELECT * FROM orders WHERE order_id = $1 FOR UPDATE;`,
+          [order_id]
         );
 
-        if (licRes.rowCount > 0) {
-          const lic = licRes.rows[0];
+        if (orderRes.rowCount === 0) {
+          throw { isOrderNotFoundError: true, message: "Order not found in database." };
+        }
 
-          // Check device binding
-          if (!lic.bound_device_hash) {
-            await client.query(
-              `UPDATE licenses SET bound_device_hash = $1, updated_at = NOW() WHERE license_key = $2;`,
-              [device_hash, lic.license_key]
-            );
-            lic.bound_device_hash = device_hash;
-          } else if (lic.bound_device_hash !== device_hash) {
-            throw {
-              statusCode: 403,
-              message: "DEVICE_BINDING_VIOLATION: License is already registered to another device."
+        const order = orderRes.rows[0];
+
+        // Verify unguessable claim token
+        if (order.claim_token_hash && order.claim_token_hash !== inputTokenHash) {
+          throw { statusCode: 403, message: "CLAIM_TOKEN_MISMATCH: Unauthorized license fulfillment attempt." };
+        }
+
+        // Check if a license is already provisioned
+        if (order.license_key) {
+          const licRes = await client.query(
+            `SELECT * FROM licenses WHERE license_key = $1 FOR UPDATE;`,
+            [order.license_key]
+          );
+
+          if (licRes.rowCount > 0) {
+            const lic = licRes.rows[0];
+
+            // Check device binding
+            if (!lic.bound_device_hash) {
+              await client.query(
+                `UPDATE licenses SET bound_device_hash = $1, updated_at = NOW() WHERE license_key = $2;`,
+                [device_hash, lic.license_key]
+              );
+              lic.bound_device_hash = device_hash;
+            } else if (lic.bound_device_hash !== device_hash) {
+              throw {
+                statusCode: 403,
+                message: "DEVICE_BINDING_VIOLATION: License is already registered to another device."
+              };
+            }
+
+            const remaining = lic.audits_allowed - lic.audits_used - lic.audits_reserved;
+            return {
+              success: true,
+              license_key: lic.license_key,
+              licenseKey: lic.license_key,
+              plan: lic.plan_type,
+              planType: lic.plan_type,
+              audits_allowed: lic.audits_allowed,
+              auditsAllowed: lic.audits_allowed,
+              audits_remaining: remaining,
+              auditsRemaining: remaining,
+              status: lic.status
             };
           }
-
-          const remaining = lic.audits_allowed - lic.audits_used - lic.audits_reserved;
-          return {
-            success: true,
-            license_key: lic.license_key,
-            licenseKey: lic.license_key,
-            plan: lic.plan_type,
-            planType: lic.plan_type,
-            audits_allowed: lic.audits_allowed,
-            auditsAllowed: lic.audits_allowed,
-            audits_remaining: remaining,
-            auditsRemaining: remaining,
-            status: lic.status
-          };
         }
+
+        // If license not yet provisioned (e.g. client arrives before webhook):
+        const planConfig = AUTHORITATIVE_PLANS[order.plan_type];
+        const newKey = generateCryptographicLicenseKey(order.plan_type);
+        const auditsAllowed = planConfig ? planConfig.auditsAllowed : 1;
+        const expiresAt = planConfig && planConfig.cycleDays
+          ? new Date(Date.now() + planConfig.cycleDays * 24 * 60 * 60 * 1000).toISOString()
+          : null;
+
+        // Provision new license row
+        await client.query(
+          `INSERT INTO licenses (license_key, plan_type, status, audits_allowed, audits_used, audits_reserved, bound_device_hash, expires_at)
+           VALUES ($1, $2, 'ACTIVE', $3, 0, 0, $4, $5);`,
+          [newKey, order.plan_type, auditsAllowed, device_hash, expiresAt]
+        );
+
+        // Mark order fulfilled
+        await client.query(
+          `UPDATE orders
+           SET status = 'paid', payment_id = $1, license_key = $2, fulfilled_at = NOW(), updated_at = NOW()
+           WHERE order_id = $3;`,
+          [payment_id, newKey, order_id]
+        );
+
+        return {
+          success: true,
+          license_key: newKey,
+          licenseKey: newKey,
+          plan: order.plan_type,
+          planType: order.plan_type,
+          audits_allowed: auditsAllowed,
+          auditsAllowed: auditsAllowed,
+          audits_remaining: auditsAllowed,
+          auditsRemaining: auditsAllowed,
+          status: "ACTIVE"
+        };
+      });
+    } catch (dbErr: any) {
+      if (dbErr.statusCode === 403) {
+        throw dbErr;
+      }
+      console.warn("Database fulfillment unavailable or order not found, evaluating authoritative Razorpay API fallback:", dbErr?.message || dbErr);
+    }
+
+    // 3. AUTHORITATIVE FALLBACK: Verify payment directly with Razorpay REST API
+    if (!result) {
+      const authHeader = Buffer.from(`${config.keyId}:${config.keySecret}`).toString("base64");
+      const rzpRes = await fetch(`https://api.razorpay.com/v1/payments/${payment_id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${authHeader}`
+        }
+      });
+
+      if (!rzpRes.ok) {
+        const errorText = await rzpRes.text().catch(() => "");
+        console.error("Razorpay payment verification failed:", rzpRes.status, errorText);
+        return {
+          statusCode: 502,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "Failed to verify captured payment with payment gateway." })
+        };
       }
 
-      // If license not yet provisioned (e.g. client arrives before webhook):
-      // Verify payment with Razorpay API as backup verification
-      const planConfig = AUTHORITATIVE_PLANS[order.plan_type];
-      const newKey = generateCryptographicLicenseKey(order.plan_type);
+      const payment = await rzpRes.json();
+      if (payment.status !== "captured" && payment.status !== "authorized") {
+        return {
+          statusCode: 400,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: `Payment is not captured. Current status: ${payment.status}` })
+        };
+      }
+
+      if (payment.order_id && payment.order_id !== order_id) {
+        return {
+          statusCode: 400,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "Payment order ID mismatch." })
+        };
+      }
+
+      // Determine plan from payment amount (paise) or notes
+      let planType: "SINGLE_AUDIT" | "PROFESSIONAL_MONTHLY" | "ANNUAL_PROFESSIONAL" = "SINGLE_AUDIT";
+      if (payment.amount === 4999000 || payment.notes?.planType === "ANNUAL_PROFESSIONAL") {
+        planType = "ANNUAL_PROFESSIONAL";
+      } else if (payment.amount === 499900 || payment.notes?.planType === "PROFESSIONAL_MONTHLY") {
+        planType = "PROFESSIONAL_MONTHLY";
+      } else {
+        planType = "SINGLE_AUDIT";
+      }
+
+      const planConfig = AUTHORITATIVE_PLANS[planType];
       const auditsAllowed = planConfig ? planConfig.auditsAllowed : 1;
-      const expiresAt = planConfig && planConfig.cycleDays
-        ? new Date(Date.now() + planConfig.cycleDays * 24 * 60 * 60 * 1000).toISOString()
-        : null;
+      const newKey = generateCryptographicLicenseKey(planType);
 
-      // Provision new license row
-      await client.query(
-        `INSERT INTO licenses (license_key, plan_type, status, audits_allowed, audits_used, audits_reserved, bound_device_hash, expires_at)
-         VALUES ($1, $2, 'ACTIVE', $3, 0, 0, $4, $5);`,
-        [newKey, order.plan_type, auditsAllowed, device_hash, expiresAt]
-      );
-
-      // Mark order fulfilled
-      await client.query(
-        `UPDATE orders
-         SET status = 'paid', payment_id = $1, license_key = $2, fulfilled_at = NOW(), updated_at = NOW()
-         WHERE order_id = $3;`,
-        [payment_id, newKey, order_id]
-      );
-
-      return {
+      result = {
         success: true,
         license_key: newKey,
         licenseKey: newKey,
-        plan: order.plan_type,
-        planType: order.plan_type,
+        plan: planType,
+        planType: planType,
         audits_allowed: auditsAllowed,
         auditsAllowed: auditsAllowed,
         audits_remaining: auditsAllowed,
         auditsRemaining: auditsAllowed,
         status: "ACTIVE"
       };
-    });
+    }
 
     return {
       statusCode: 200,

@@ -58,6 +58,11 @@ export function parseDatabaseConfig(rawConnectionString?: string) {
     // If decode fails, keep raw
   }
 
+  // Check fallback environment variables if password is empty or placeholder
+  if (!password || password === "[YOUR-PASSWORD]" || password === "YOUR_PASSWORD") {
+    password = process.env.DATABASE_PASSWORD || process.env.SUPABASE_DB_PASSWORD || process.env.PGPASSWORD || "";
+  }
+
   return {
     user: user || DEFAULT_POOLER_USER,
     password,
@@ -86,9 +91,8 @@ export function getDbPool(): Pool {
       sslConfig.ca = process.env.SUPABASE_SSL_CA;
     }
 
-    pool = new Pool({
+    const poolConfig: any = {
       user: dbConfig.user,
-      password: dbConfig.password,
       host: dbConfig.host,
       port: dbConfig.port,
       database: dbConfig.database,
@@ -96,7 +100,13 @@ export function getDbPool(): Pool {
       max: 5, // Serverless concurrency-safe connection limit
       idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 5000
-    });
+    };
+
+    if (dbConfig.password && typeof dbConfig.password === "string" && dbConfig.password.length > 0) {
+      poolConfig.password = dbConfig.password;
+    }
+
+    pool = new Pool(poolConfig);
   }
   return pool;
 }

@@ -45,6 +45,7 @@ export const handler = async (event: any) => {
   const sigBufferB = Buffer.from(expectedSignature);
 
   if (sigBufferA.length !== sigBufferB.length || !crypto.timingSafeEqual(sigBufferA, sigBufferB)) {
+    console.warn("Webhook cryptographic signature mismatch. Verify RAZORPAY_WEBHOOK_SECRET in Netlify matches Razorpay Dashboard.");
     return {
       statusCode: 401,
       headers: { "Content-Type": "application/json" },
@@ -245,6 +246,7 @@ export const handler = async (event: any) => {
       body: JSON.stringify(result)
     };
   } catch (err: any) {
+    console.error("Webhook processing error:", err.message || err);
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },

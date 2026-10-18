@@ -2,6 +2,7 @@ export type PlanType = "FREE_FIRST_AUDIT" | "SINGLE_AUDIT" | "PROFESSIONAL_MONTH
 
 export type EntitlementStatus =
   | "ACTIVE"
+  | "UNVERIFIED"
   | "QUOTA_EXHAUSTED"
   | "EXPIRED"
   | "INVALID_KEY"

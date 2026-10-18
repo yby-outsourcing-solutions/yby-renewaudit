@@ -8,7 +8,7 @@ import { NegotiationDraftView } from "./components/negotiation/NegotiationDraftV
 import { CommercialTermsView } from "./components/commercial/CommercialTermsView";
 import { LicenseActivationModal } from "./components/commercial/LicenseActivationModal";
 import { LegalFooterModal, type LegalModalTab } from "./components/legal/LegalFooterModal";
-import { parseLicenseKey, checkAuditAccess, consumeAuditCredit, PLAN_CONFIGS, loadPersistedEntitlement, savePersistedEntitlement } from "./licensing/entitlement";
+import { parseLicenseKey, checkAuditAccess, consumeAuditCredit, PLAN_CONFIGS, loadPersistedEntitlement, savePersistedEntitlement, getClientDeviceHash } from "./licensing/entitlement";
 import type { EntitlementState } from "./licensing/types";
 import type { AuditPayload, ReconciliationResult, CalculationTerm } from "./types";
 import { extractTermsFromFiles, type FileIntakeItem } from "./parsers/extractor";
@@ -27,6 +27,66 @@ export default function App() {
   const [consumedForCurrentSession, setConsumedForCurrentSession] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalModalTab>("contact");
+
+  useEffect(() => {
+    // Authoritative Server Entitlement Verification:
+    // If client holds a paid plan, verify directly with server database
+    async function verifyServerEntitlement() {
+      const persisted = loadPersistedEntitlement();
+      if (persisted.plan === "FREE_FIRST_AUDIT") return;
+
+      const licenseKey = (persisted as any).licenseKey || (persisted as any).rawKey;
+      if (!licenseKey) {
+        const fallback = parseLicenseKey("FREE");
+        setEntitlement(fallback);
+        savePersistedEntitlement(fallback);
+        return;
+      }
+
+      try {
+        const deviceHash = await getClientDeviceHash();
+        const res = await fetch("/.netlify/functions/licensing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "validate",
+            licenseKey,
+            deviceHash
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.valid && data.status === "ACTIVE") {
+            const verifiedState: EntitlementState = {
+              status: "ACTIVE",
+              plan: data.plan || persisted.plan,
+              auditsAllowed: data.auditsAllowed ?? persisted.auditsAllowed,
+              auditsUsed: data.auditsUsed ?? persisted.auditsUsed,
+              auditsRemaining: data.auditsRemaining ?? persisted.auditsRemaining,
+              expiresAt: data.expiresAt ?? persisted.expiresAt
+            };
+            (verifiedState as any).licenseKey = licenseKey;
+            setEntitlement(verifiedState);
+            savePersistedEntitlement(verifiedState);
+            return;
+          }
+        }
+        // If server says invalid / not in database, fail-closed to Free
+        const unverified = parseLicenseKey("FREE");
+        setEntitlement(unverified);
+        savePersistedEntitlement(unverified);
+      } catch {
+        setEntitlement({
+          ...persisted,
+          status: "NETWORK_ERROR",
+          errorReason: "Could not connect to licensing server to verify entitlement."
+        });
+      }
+    }
+
+    verifyServerEntitlement();
+  }, []);
 
   function openLegalPage(tab: LegalModalTab) {
     setLegalModalTab(tab);

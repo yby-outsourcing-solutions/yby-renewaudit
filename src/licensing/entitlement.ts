@@ -219,6 +219,10 @@ export function parseLicenseKey(key: string, deviceHash?: string): EntitlementSt
  * Gate 0 Pre-Execution Audit Access Evaluator
  */
 export function checkAuditAccess(state: EntitlementState): { allowed: boolean; reason?: string } {
+  if (state.status === "UNVERIFIED") {
+    return { allowed: false, reason: "License entitlement is unverified or awaiting server confirmation. Please retry verification." };
+  }
+
   if (state.status === "EXPIRED") {
     return { allowed: false, reason: "License subscription has expired. Please renew to run new audits." };
   }
@@ -304,6 +308,14 @@ export function loadPersistedEntitlement(): EntitlementState {
     if (!raw) return parseLicenseKey("FREE");
     const parsed: EntitlementState = JSON.parse(raw);
     if (parsed && typeof parsed.auditsRemaining === "number" && parsed.status) {
+      // Security Invariant: Paid plans loaded from localStorage must be marked UNVERIFIED until server validation
+      if (parsed.plan !== "FREE_FIRST_AUDIT" && parsed.status === "ACTIVE") {
+        return {
+          ...parsed,
+          status: "UNVERIFIED",
+          errorReason: "Awaiting authoritative server database verification."
+        };
+      }
       return parsed;
     }
   } catch {

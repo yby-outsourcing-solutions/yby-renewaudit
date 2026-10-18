@@ -210,6 +210,32 @@ export const handler = async (event: any) => {
         }
       }
 
+      // Handle Subscription Cancellation, Halting or Activation
+      if (eventType === "subscription.cancelled" || eventType === "subscription.halted" || eventType === "subscription.activated") {
+        const subEntity = payload.payload?.subscription?.entity;
+        const subId = subEntity?.id;
+        if (subId) {
+          const newStatus = eventType === "subscription.cancelled" ? "cancelled" : (eventType === "subscription.halted" ? "halted" : "active");
+          await client.query(
+            `UPDATE subscriptions SET status = $1, updated_at = NOW() WHERE subscription_id = $2;`,
+            [newStatus, subId]
+          );
+        }
+      }
+
+      // Handle Payment Failure
+      if (eventType === "payment.failed") {
+        const paymentEntity = payload.payload?.payment?.entity;
+        const orderId = paymentEntity?.order_id;
+        const paymentId = paymentEntity?.id;
+        if (orderId) {
+          await client.query(
+            `UPDATE orders SET status = 'failed', payment_id = $1, updated_at = NOW() WHERE order_id = $2;`,
+            [paymentId, orderId]
+          );
+        }
+      }
+
       return { status: "PROCESSED" };
     });
 

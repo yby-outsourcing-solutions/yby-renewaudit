@@ -149,7 +149,7 @@ export function LicenseActivationModal({ currentState, onStateChange, onClose }:
     }
   }
 
-  async function handleServerVerifiedPayment(planType: PlanType, simulateFailure: boolean = false, isMicroTest: boolean = false) {
+  async function handleServerVerifiedPayment(planType: PlanType, simulateFailure: boolean = false) {
     setIsProcessingPayment(true);
     setMessage(null);
 
@@ -177,7 +177,6 @@ export function LicenseActivationModal({ currentState, onStateChange, onClose }:
           body: JSON.stringify({
             planType: planType,
             plan: planType,
-            isMicroTest: isMicroTest,
             customerEmail: "billing@company.com"
           })
         });
@@ -224,9 +223,7 @@ export function LicenseActivationModal({ currentState, onStateChange, onClose }:
           amount: amount,
           currency: currency,
           name: "YBY RenewAudit",
-          description: isMicroTest
-            ? "Live UPI Verification Test (₹10.00)"
-            : `${PLAN_CONFIGS[planType]?.name || planType} Commercial Entitlement`,
+          description: `${PLAN_CONFIGS[planType]?.name || planType} Commercial Entitlement`,
           order_id: orderId,
           handler: async (response: {
             razorpay_payment_id: string;
@@ -447,14 +444,6 @@ export function LicenseActivationModal({ currentState, onStateChange, onClose }:
             : "Select a commercial plan below to initiate server-verified payment settlement and reactivate audit access:"}
         </p>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <button
-            className="btn btn-warning btn-sm"
-            disabled={isProcessingPayment}
-            style={{ fontWeight: "bold", background: "#f59e0b", color: "#000", border: "1px solid #d97706" }}
-            onClick={() => handleServerVerifiedPayment("SINGLE_AUDIT", false, true)}
-          >
-            ⚡ Pay ₹10 (Live UPI Test)
-          </button>
           <button
             className="btn btn-primary btn-sm"
             disabled={isProcessingPayment}

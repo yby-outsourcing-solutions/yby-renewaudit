@@ -8,8 +8,6 @@ interface CheckoutRequestBody {
   plan?: "SINGLE_AUDIT" | "PROFESSIONAL_MONTHLY" | "ANNUAL_PROFESSIONAL";
   customerEmail?: string;
   customer_email?: string;
-  isMicroTest?: boolean;
-  microTest?: boolean;
 }
 
 export const handler = async (event: any) => {
@@ -52,8 +50,7 @@ export const handler = async (event: any) => {
       };
     }
 
-    const isMicroTest = Boolean(body.isMicroTest || body.microTest);
-    const amountPaise = isMicroTest && planType === "SINGLE_AUDIT" ? 1000 : plan.amountPaise;
+    const amountPaise = plan.amountPaise;
 
     const receiptId = `rcpt_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
 
@@ -70,7 +67,6 @@ export const handler = async (event: any) => {
       notes: {
         plan_type: planType,
         customer_email: customerEmail,
-        is_micro_test: isMicroTest ? "true" : "false",
         env: config.env
       }
     };

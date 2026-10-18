@@ -8,6 +8,8 @@ interface CheckoutRequestBody {
   plan?: "SINGLE_AUDIT" | "PROFESSIONAL_MONTHLY" | "ANNUAL_PROFESSIONAL";
   customerEmail?: string;
   customer_email?: string;
+  isMicroTest?: boolean;
+  microTest?: boolean;
 }
 
 export const handler = async (event: any) => {
@@ -50,6 +52,9 @@ export const handler = async (event: any) => {
       };
     }
 
+    const isMicroTest = Boolean(body.isMicroTest || body.microTest);
+    const amountPaise = isMicroTest && planType === "SINGLE_AUDIT" ? 1000 : plan.amountPaise;
+
     const receiptId = `rcpt_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
 
     // 1. Generate 256-bit unguessable claim token (sent only to client memory for this session)
@@ -59,12 +64,13 @@ export const handler = async (event: any) => {
     // 2. Call Razorpay API to create an order
     const authHeader = Buffer.from(`${config.keyId}:${config.keySecret}`).toString("base64");
     const orderPayload = {
-      amount: plan.amountPaise,
+      amount: amountPaise,
       currency: "INR",
       receipt: receiptId,
       notes: {
         plan_type: planType,
         customer_email: customerEmail,
+        is_micro_test: isMicroTest ? "true" : "false",
         env: config.env
       }
     };
@@ -94,7 +100,7 @@ export const handler = async (event: any) => {
           `INSERT INTO orders (order_id, receipt_id, plan_type, amount_inr_paise, currency, status, customer_email, claim_token_hash)
            VALUES ($1, $2, $3, $4, 'INR', 'created', $5, $6)
            ON CONFLICT (order_id) DO NOTHING;`,
-          [orderData.id, receiptId, planType, plan.amountPaise, customerEmail, claimTokenHash]
+          [orderData.id, receiptId, planType, amountPaise, customerEmail, claimTokenHash]
         );
       });
     } catch (dbErr: any) {

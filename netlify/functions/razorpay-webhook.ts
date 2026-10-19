@@ -135,7 +135,19 @@ export const handler = async (event: any) => {
           throw new Error(`SECURITY_ALERT: Currency mismatch. Expected INR, received ${paymentEntity.currency}`);
         }
 
-        // 5. POINT 4 & 5: Amount & Plan Verification
+        // 5. POINT 4 & 5: Amount & Plan Catalog Verification
+        const planConfig = AUTHORITATIVE_PLANS[order.plan_type];
+        if (!planConfig) {
+          throw new Error(`SECURITY_ALERT: Unrecognized plan type ${order.plan_type}`);
+        }
+
+        // Authoritative Catalog Price Validation: Reject any order whose DB amount does not match catalog price
+        // (Accepts historical ₹10 owner-test payment only for idempotent re-fulfillment of pay_TpMViONJpuxQBN)
+        const isOwnerTestOrder = paymentEntity?.id === "pay_TpMViONJpuxQBN" && paymentEntity?.amount === 1000;
+        if (!isOwnerTestOrder && order.amount_inr_paise !== planConfig.amountPaise) {
+          throw new Error(`SECURITY_ALERT: Catalog price mismatch. Order amount ${order.amount_inr_paise} does not match catalog price ${planConfig.amountPaise}`);
+        }
+
         if (paymentEntity && paymentEntity.amount !== order.amount_inr_paise) {
           throw new Error(`SECURITY_ALERT: Amount mismatch. Expected ${order.amount_inr_paise}, received ${paymentEntity.amount}`);
         }
@@ -150,7 +162,6 @@ export const handler = async (event: any) => {
         }
 
         // Otherwise provision new license key
-        const planConfig = AUTHORITATIVE_PLANS[order.plan_type];
         const newKey = generateCryptographicLicenseKey(order.plan_type);
         const auditsAllowed = planConfig ? planConfig.auditsAllowed : 1;
         const expiresAt = planConfig && planConfig.cycleDays

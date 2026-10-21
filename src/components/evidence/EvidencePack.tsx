@@ -1,4 +1,5 @@
 import type { ReconciliationResult } from "../../types";
+import { PostAuditFeedbackWidget } from "../feedback/PostAuditFeedbackWidget";
 
 export function EvidencePack({ result }: { result: ReconciliationResult }) {
   function handlePrint() {
@@ -72,6 +73,7 @@ export function EvidencePack({ result }: { result: ReconciliationResult }) {
           </div>
         </article>
       ))}
+      <PostAuditFeedbackWidget />
     </section>
   );
 }

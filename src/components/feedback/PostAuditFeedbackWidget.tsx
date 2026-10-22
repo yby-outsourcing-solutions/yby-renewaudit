@@ -7,11 +7,15 @@ export function PostAuditFeedbackWidget() {
   const [comment, setComment] = useState<string>("");
   const [consentContact, setConsentContact] = useState<boolean>(false);
   const [contactEmail, setContactEmail] = useState<string>("");
+  const [contactName, setContactName] = useState<string>("");
+  const [companyName, setCompanyName] = useState<string>("");
   const [honeypot, setHoneypot] = useState<string>("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const MAX_COMMENT_LENGTH = 1000;
+  const MAX_NAME_LENGTH = 128;
+  const MAX_COMPANY_LENGTH = 128;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,10 +25,22 @@ export function PostAuditFeedbackWidget() {
       return;
     }
 
-    if (consentContact && contactEmail.trim().length > 0) {
+    if (consentContact) {
+      if (contactEmail.trim().length === 0) {
+        setErrorMessage("Please enter your work email to enable contact consent.");
+        return;
+      }
       const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
       if (!emailRegex.test(contactEmail.trim())) {
-        setErrorMessage("Please enter a valid email address or uncheck the contact consent.");
+        setErrorMessage("Please enter a valid work email address or uncheck the contact consent.");
+        return;
+      }
+      if (contactName.trim().length > MAX_NAME_LENGTH) {
+        setErrorMessage(`Full Name must not exceed ${MAX_NAME_LENGTH} characters.`);
+        return;
+      }
+      if (companyName.trim().length > MAX_COMPANY_LENGTH) {
+        setErrorMessage(`Company Name must not exceed ${MAX_COMPANY_LENGTH} characters.`);
         return;
       }
     }
@@ -41,6 +57,8 @@ export function PostAuditFeedbackWidget() {
           comment: comment.trim() || undefined,
           consentContact,
           contactEmail: consentContact && contactEmail.trim() ? contactEmail.trim() : undefined,
+          contactName: consentContact && contactName.trim() ? contactName.trim() : undefined,
+          companyName: consentContact && companyName.trim() ? companyName.trim() : undefined,
           hp_company: honeypot || undefined
         })
       });
@@ -187,28 +205,70 @@ export function PostAuditFeedbackWidget() {
               checked={consentContact}
               onChange={(e) => {
                 setConsentContact(e.target.checked);
-                if (!e.target.checked) setContactEmail("");
+                if (!e.target.checked) {
+                  setContactEmail("");
+                  setContactName("");
+                  setCompanyName("");
+                }
               }}
             />
             I consent to be contacted regarding this feedback
           </label>
         </div>
 
-        {/* Conditional Email Field (Only rendered/active when consent is true) */}
+        {/* Conditional Contact Fields (Only rendered when consent is true) */}
         {consentContact && (
-          <div style={{ marginBottom: "14px" }}>
-            <label htmlFor="feedback-email" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: "4px" }}>
-              Contact Email
-            </label>
-            <input
-              id="feedback-email"
-              type="email"
-              className="input-box"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="procurement.officer@enterprise.com"
-              style={{ width: "100%", maxWidth: "360px", fontSize: "0.85rem" }}
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px", marginBottom: "14px" }}>
+            <div>
+              <label htmlFor="feedback-email" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: "4px" }}>
+                Work Email <span style={{ color: "var(--color-rose, #f43f5e)" }}>*</span>
+              </label>
+              <input
+                id="feedback-email"
+                type="email"
+                className="input-box"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="procurement.officer@enterprise.com"
+                maxLength={255}
+                required
+                style={{ width: "100%", fontSize: "0.85rem" }}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="feedback-contact-name" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: "4px" }}>
+                Full Name <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>(Optional)</span>
+              </label>
+              <input
+                id="feedback-contact-name"
+                name="contactName"
+                type="text"
+                className="input-box"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="e.g. Ramesh Patel"
+                maxLength={MAX_NAME_LENGTH}
+                style={{ width: "100%", fontSize: "0.85rem" }}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="feedback-company-name" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: "4px" }}>
+                Company Name <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>(Optional)</span>
+              </label>
+              <input
+                id="feedback-company-name"
+                name="companyName"
+                type="text"
+                className="input-box"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="e.g. Tata Consultancy Services"
+                maxLength={MAX_COMPANY_LENGTH}
+                style={{ width: "100%", fontSize: "0.85rem" }}
+              />
+            </div>
           </div>
         )}
 

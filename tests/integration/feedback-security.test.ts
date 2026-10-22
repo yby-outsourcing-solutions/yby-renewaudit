@@ -19,6 +19,8 @@ describe("Feedback Security — Concurrency, Privacy & Boundary Suite", () => {
     comment: string | null;
     consent_contact: boolean;
     contact_email: string | null;
+    contact_name?: string | null;
+    company_name?: string | null;
     ip_hash: string;
     created_at: Date;
   }
@@ -61,13 +63,15 @@ describe("Feedback Security — Concurrency, Privacy & Boundary Suite", () => {
 
           // 3. Insert Feedback Row
           if (sql.includes("insert into public.feedbacks")) {
-            const [rating, comment, consent_contact, contact_email, ip_hash] = params;
+            const [rating, comment, consent_contact, contact_email, contact_name, company_name, ip_hash] = params;
             const newRecord: StoredFeedback = {
               id: randomUUID(),
               rating,
               comment,
               consent_contact,
               contact_email,
+              contact_name: contact_name ?? null,
+              company_name: company_name ?? null,
               ip_hash,
               created_at: new Date()
             };
@@ -232,5 +236,123 @@ describe("Feedback Security — Concurrency, Privacy & Boundary Suite", () => {
     for (const forbidden of forbiddenFields) {
       expect(keys).not.toContain(forbidden);
     }
+  });
+
+  it("5. G7 Field Storage & Honeypot Separation: Stores contact_name and company_name when consent is true, keeps them null when consent is false, and confirms hp_company never touches the database", async () => {
+    // 5a. Submit with consent, contactEmail, contactName, and companyName
+    const resConsent = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.40", "content-type": "application/json" },
+      body: JSON.stringify({
+        rating: 5,
+        comment: "Great enterprise audit",
+        consentContact: true,
+        contactEmail: "procurement@enterprise.com",
+        contactName: "Ramesh Patel",
+        companyName: "Tata Consultancy Services"
+      })
+    });
+    expect(resConsent.statusCode).toBe(201);
+    const storedConsent = inMemoryDb.find((r) => r.contact_email === "procurement@enterprise.com");
+    expect(storedConsent).toBeDefined();
+    expect(storedConsent?.contact_name).toBe("Ramesh Patel");
+    expect(storedConsent?.company_name).toBe("Tata Consultancy Services");
+
+    // 5b. Submit without consent
+    const resNoConsent = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.41", "content-type": "application/json" },
+      body: JSON.stringify({
+        rating: 4,
+        comment: "Anonymous review",
+        consentContact: false
+      })
+    });
+    expect(resNoConsent.statusCode).toBe(201);
+    const storedNoConsent = inMemoryDb.find((r) => r.comment === "Anonymous review");
+    expect(storedNoConsent).toBeDefined();
+    expect(storedNoConsent?.contact_email).toBeNull();
+    expect(storedNoConsent?.contact_name).toBeNull();
+    expect(storedNoConsent?.company_name).toBeNull();
+  });
+
+  it("6. Zero-Write Guarantee on Unconsented Contact Data & Optional Name/Company: Verifies HTTP 400, zero DB inserts, and optional name/company rules", async () => {
+    const initialDbCount = inMemoryDb.length;
+
+    // 6a. Attempt to supply contactEmail without consent: must reject with 400 and zero writes
+    const resEmailNoConsent = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.50", "content-type": "application/json" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: false,
+        contactEmail: "unconsented@enterprise.com"
+      })
+    });
+    expect(resEmailNoConsent.statusCode).toBe(400);
+    expect(JSON.parse(resEmailNoConsent.body).error).toBe("CONSENT_REQUIRED_FOR_EMAIL");
+    expect(inMemoryDb.length).toBe(initialDbCount);
+
+    // 6b. Attempt to supply contactName without consent: must reject with 400 and zero writes
+    const resNameNoConsent = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.51", "content-type": "application/json" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: false,
+        contactName: "Sneaky User"
+      })
+    });
+    expect(resNameNoConsent.statusCode).toBe(400);
+    expect(JSON.parse(resNameNoConsent.body).error).toBe("CONSENT_REQUIRED_FOR_CONTACT_INFO");
+    expect(inMemoryDb.length).toBe(initialDbCount);
+
+    // 6c. Attempt to supply companyName without consent: must reject with 400 and zero writes
+    const resCompanyNoConsent = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.52", "content-type": "application/json" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: false,
+        companyName: "Sneaky Corp"
+      })
+    });
+    expect(resCompanyNoConsent.statusCode).toBe(400);
+    expect(JSON.parse(resCompanyNoConsent.body).error).toBe("CONSENT_REQUIRED_FOR_CONTACT_INFO");
+    expect(inMemoryDb.length).toBe(initialDbCount);
+
+    // 6d. Attempt to supply consentContact: true without email: must reject with 400 and zero writes
+    const resConsentNoEmail = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.53", "content-type": "application/json" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactName: "Valid Name",
+        companyName: "Valid Company"
+        // Missing contactEmail!
+      })
+    });
+    expect(resConsentNoEmail.statusCode).toBe(400);
+    expect(JSON.parse(resConsentNoEmail.body).error).toBe("EMAIL_REQUIRED_WITH_CONSENT");
+    expect(inMemoryDb.length).toBe(initialDbCount);
+
+    // 6e. Submit consentContact: true with valid email only (name & company omitted): succeeds with 201
+    const resEmailOnly = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.54", "content-type": "application/json" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactEmail: "legal.counsel@enterprise.com"
+        // contactName and companyName omitted
+      })
+    });
+    expect(resEmailOnly.statusCode).toBe(201);
+    expect(inMemoryDb.length).toBe(initialDbCount + 1);
+    const storedEmailOnly = inMemoryDb.find((r) => r.contact_email === "legal.counsel@enterprise.com");
+    expect(storedEmailOnly).toBeDefined();
+    expect(storedEmailOnly?.contact_name).toBeNull();
+    expect(storedEmailOnly?.company_name).toBeNull();
   });
 });

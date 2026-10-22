@@ -98,6 +98,32 @@ describe("Feedback Validation & Integrity Unit Suite", () => {
     expect(body.error).toBe("CONSENT_REQUIRED_FOR_EMAIL");
   });
 
+  it("6b. Consent Enforcement: Rejects contactName and companyName when consentContact is false", async () => {
+    const resName = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.5" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: false,
+        contactName: "Ramesh Patel"
+      })
+    });
+    expect(resName.statusCode).toBe(400);
+    expect(JSON.parse(resName.body).error).toBe("CONSENT_REQUIRED_FOR_CONTACT_INFO");
+
+    const resCompany = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.5" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: false,
+        companyName: "Tata Consultancy Services"
+      })
+    });
+    expect(resCompany.statusCode).toBe(400);
+    expect(JSON.parse(resCompany.body).error).toBe("CONSENT_REQUIRED_FOR_CONTACT_INFO");
+  });
+
   it("7. Email Format Validation: Rejects malformed email when consentContact is true", async () => {
     const invalidEmails = ["not-an-email", "@domain.com", "user@", "user@domain", "user@.com"];
 
@@ -115,6 +141,89 @@ describe("Feedback Validation & Integrity Unit Suite", () => {
       const body = JSON.parse(res.body);
       expect(body.error).toBe("INVALID_EMAIL_FORMAT");
     }
+  });
+
+  it("7b. Email Required with Consent: Rejects missing or empty contactEmail when consentContact is true", async () => {
+    const resMissing = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.6" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactName: "Ramesh Patel"
+      })
+    });
+    expect(resMissing.statusCode).toBe(400);
+    expect(JSON.parse(resMissing.body).error).toBe("EMAIL_REQUIRED_WITH_CONSENT");
+
+    const resEmpty = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.6" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactEmail: "   ",
+        contactName: "Ramesh Patel"
+      })
+    });
+    expect(resEmpty.statusCode).toBe(400);
+    expect(JSON.parse(resEmpty.body).error).toBe("EMAIL_REQUIRED_WITH_CONSENT");
+  });
+
+  it("7c. Name & Company Validation: Rejects fields exceeding 128 characters or non-string types", async () => {
+    const longName = "A".repeat(129);
+    const resLongName = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.6" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactEmail: "audit@enterprise.com",
+        contactName: longName
+      })
+    });
+    expect(resLongName.statusCode).toBe(400);
+    expect(JSON.parse(resLongName.body).error).toBe("NAME_TOO_LONG");
+
+    const longCompany = "B".repeat(129);
+    const resLongCompany = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.6" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactEmail: "audit@enterprise.com",
+        companyName: longCompany
+      })
+    });
+    expect(resLongCompany.statusCode).toBe(400);
+    expect(JSON.parse(resLongCompany.body).error).toBe("COMPANY_TOO_LONG");
+
+    const resBadTypeName = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.6" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactEmail: "audit@enterprise.com",
+        contactName: 12345
+      })
+    });
+    expect(resBadTypeName.statusCode).toBe(400);
+    expect(JSON.parse(resBadTypeName.body).error).toBe("INVALID_NAME");
+
+    const resBadTypeCompany = await submitFeedbackHandler({
+      httpMethod: "POST",
+      headers: { "client-ip": "198.51.100.6" },
+      body: JSON.stringify({
+        rating: 5,
+        consentContact: true,
+        contactEmail: "audit@enterprise.com",
+        companyName: { enterprise: true }
+      })
+    });
+    expect(resBadTypeCompany.statusCode).toBe(400);
+    expect(JSON.parse(resBadTypeCompany.body).error).toBe("INVALID_COMPANY");
   });
 
   it("8. Honeypot Spam Drop: Returns 200 OK immediately when hp_company is populated", async () => {

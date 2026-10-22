@@ -7,11 +7,15 @@ interface FeedbackSubmissionPayload {
   comment?: string;
   consentContact: boolean;
   contactEmail?: string;
+  contactName?: string;
+  companyName?: string;
   hp_company?: string; // Honeypot field for bot protection
 }
 
 const RFC5322_EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const MAX_COMMENT_LENGTH = 1000;
+const MAX_NAME_LENGTH = 128;
+const MAX_COMPANY_LENGTH = 128;
 const RATE_LIMIT_WINDOW_HOURS = 1;
 const MAX_SUBMISSIONS_PER_WINDOW = 5;
 
@@ -83,7 +87,7 @@ export const handler = async (event: any) => {
       };
     }
 
-    const { rating, comment, consentContact, contactEmail, hp_company } = payload;
+    const { rating, comment, consentContact, contactEmail, contactName, companyName, hp_company } = payload;
 
     // 3. Honeypot Check (Spam mitigation): Silently discard if populated
     if (hp_company && typeof hp_company === "string" && hp_company.trim().length > 0) {
@@ -149,9 +153,13 @@ export const handler = async (event: any) => {
       };
     }
 
-    // 7. Contact Email Enforcement: Reject if consent is false
+    // 7. Contact Information Enforcement & Validation
     let sanitizedEmail: string | null = null;
+    let sanitizedName: string | null = null;
+    let sanitizedCompany: string | null = null;
+
     if (!consentContact) {
+      // Reject any contact details if consent is false
       if (contactEmail !== undefined && contactEmail !== null && String(contactEmail).trim().length > 0) {
         return {
           statusCode: 400,
@@ -162,28 +170,104 @@ export const handler = async (event: any) => {
           })
         };
       }
+      if (contactName !== undefined && contactName !== null && String(contactName).trim().length > 0) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "CONSENT_REQUIRED_FOR_CONTACT_INFO",
+            message: "contactName must not be provided when consentContact is false."
+          })
+        };
+      }
+      if (companyName !== undefined && companyName !== null && String(companyName).trim().length > 0) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "CONSENT_REQUIRED_FOR_CONTACT_INFO",
+            message: "companyName must not be provided when consentContact is false."
+          })
+        };
+      }
     } else {
-      if (contactEmail !== undefined && contactEmail !== null) {
-        if (typeof contactEmail !== "string") {
+      // When consent is true: Work Email is strictly required
+      if (
+        contactEmail === undefined ||
+        contactEmail === null ||
+        typeof contactEmail !== "string" ||
+        contactEmail.trim().length === 0
+      ) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "EMAIL_REQUIRED_WITH_CONSENT",
+            message: "Contact email is required when contact consent is enabled."
+          })
+        };
+      }
+
+      const trimmedEmail = contactEmail.trim();
+      if (trimmedEmail.length > 255 || !RFC5322_EMAIL_REGEX.test(trimmedEmail)) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "INVALID_EMAIL_FORMAT",
+            message: "Provided contact email has an invalid format."
+          })
+        };
+      }
+      sanitizedEmail = trimmedEmail;
+
+      // Optional Full Name (max 128 characters)
+      if (contactName !== undefined && contactName !== null) {
+        if (typeof contactName !== "string") {
           return {
             statusCode: 400,
             headers: corsHeaders,
-            body: JSON.stringify({ error: "INVALID_EMAIL", message: "contactEmail must be a valid email string." })
+            body: JSON.stringify({ error: "INVALID_NAME", message: "contactName must be a valid text string." })
           };
         }
-        const trimmedEmail = contactEmail.trim();
-        if (trimmedEmail.length > 0) {
-          if (trimmedEmail.length > 255 || !RFC5322_EMAIL_REGEX.test(trimmedEmail)) {
-            return {
-              statusCode: 400,
-              headers: corsHeaders,
-              body: JSON.stringify({
-                error: "INVALID_EMAIL_FORMAT",
-                message: "Provided contact email has an invalid format."
-              })
-            };
-          }
-          sanitizedEmail = trimmedEmail;
+        const trimmedName = contactName.trim();
+        if (trimmedName.length > MAX_NAME_LENGTH) {
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({
+              error: "NAME_TOO_LONG",
+              message: `contactName must not exceed ${MAX_NAME_LENGTH} characters.`
+            })
+          };
+        }
+        if (trimmedName.length > 0) {
+          sanitizedName = trimmedName;
+        }
+      }
+
+      // Optional Company Name (max 128 characters)
+      if (companyName !== undefined && companyName !== null) {
+        if (typeof companyName !== "string") {
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: "INVALID_COMPANY", message: "companyName must be a valid text string." })
+          };
+        }
+        const trimmedCompany = companyName.trim();
+        if (trimmedCompany.length > MAX_COMPANY_LENGTH) {
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({
+              error: "COMPANY_TOO_LONG",
+              message: `companyName must not exceed ${MAX_COMPANY_LENGTH} characters.`
+            })
+          };
+        }
+        if (trimmedCompany.length > 0) {
+          sanitizedCompany = trimmedCompany;
         }
       }
     }
@@ -211,10 +295,10 @@ export const handler = async (event: any) => {
 
       // Safe insertion with exact parameterized values
       const res = await client.query(
-        `INSERT INTO public.feedbacks (rating, comment, consent_contact, contact_email, ip_hash)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO public.feedbacks (rating, comment, consent_contact, contact_email, contact_name, company_name, ip_hash)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id, created_at`,
-        [rating, sanitizedComment, consentContact, sanitizedEmail, ipHash]
+        [rating, sanitizedComment, consentContact, sanitizedEmail, sanitizedName, sanitizedCompany, ipHash]
       );
 
       return res.rows[0];

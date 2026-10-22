@@ -82,24 +82,22 @@ export function PostAuditFeedbackWidget() {
 
   if (status === "success") {
     return (
-      <div
-        className="feedback-widget panel-card no-print"
-        style={{
-          marginTop: "24px",
-          padding: "20px",
-          border: "1px solid rgba(16, 185, 129, 0.4)",
-          borderRadius: "8px",
-          background: "rgba(16, 185, 129, 0.05)"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-          <div>
-            <h4 style={{ color: "var(--color-emerald, #10b981)", margin: "0 0 4px 0", fontSize: "1rem" }}>
-              ✅ Thank you for your feedback!
-            </h4>
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary, #94a3b8)" }}>
-              Your evaluation helps us strengthen our deterministic audit engine and enterprise protection.
-            </p>
+      <div className="feedback-widget feedback-success-card no-print">
+        <div className="feedback-success-content">
+          <div className="feedback-success-left">
+            <div className="feedback-success-badge" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="feedback-success-title">
+                Thank you for your feedback!
+              </h4>
+              <p className="feedback-success-desc">
+                Your evaluation helps us strengthen our deterministic audit engine and enterprise protection.
+              </p>
+            </div>
           </div>
           <FounderWhatsAppButton />
         </div>
@@ -110,24 +108,22 @@ export function PostAuditFeedbackWidget() {
   const starLabels = ["", "Poor", "Fair", "Good", "Very Good", "Excellent"];
 
   return (
-    <div
-      className="feedback-widget panel-card no-print"
-      style={{
-        marginTop: "24px",
-        padding: "20px",
-        border: "1px solid var(--border-color, rgba(255, 255, 255, 0.1))",
-        borderRadius: "8px",
-        background: "var(--card-bg, #0f172a)"
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-        <div>
-          <h4 style={{ margin: "0 0 4px 0", fontSize: "1rem", color: "var(--text-primary, #f8fafc)" }}>
-            🌟 Rate Your Audit Report Experience
-          </h4>
-          <span style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)" }}>
-            Your feedback is strictly confidential. No contract details or audit findings are ever recorded.
-          </span>
+    <div className="feedback-widget feedback-card no-print">
+      <div className="feedback-header">
+        <div className="feedback-title-group">
+          <div className="feedback-icon-badge" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="feedback-title">
+              Rate Your Audit Report Experience
+            </h4>
+            <p className="feedback-subtitle">
+              Your feedback is strictly confidential. No contract details or audit findings are ever recorded.
+            </p>
+          </div>
         </div>
         <FounderWhatsAppButton />
       </div>
@@ -146,62 +142,78 @@ export function PostAuditFeedbackWidget() {
         />
 
         {/* Star Rating Bar */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "12px 0 16px 0" }}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "1.5rem",
-                color: (hoverRating || rating) >= star ? "#fbbf24" : "rgba(255, 255, 255, 0.2)",
-                padding: "2px",
-                transition: "transform 0.1s ease, color 0.15s ease"
-              }}
-              title={starLabels[star]}
-              aria-label={`Rate ${star} out of 5 stars`}
-            >
-              ★
-            </button>
-          ))}
-          {rating > 0 && (
-            <span style={{ fontSize: "0.85rem", color: "var(--text-secondary, #94a3b8)", marginLeft: "8px" }}>
-              ({starLabels[rating]})
+        <div className="feedback-stars-container">
+          {[1, 2, 3, 4, 5].map((star) => {
+            const isFilled = (hoverRating || rating) >= star;
+            return (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                className={`feedback-star-btn ${isFilled ? "active" : ""}`}
+                title={starLabels[star]}
+                aria-label={`Rate ${star} out of 5 stars`}
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill={isFilled ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth={isFilled ? "0" : "1.75"}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              </button>
+            );
+          })}
+          {(hoverRating > 0 || rating > 0) && (
+            <span className="feedback-star-pill">
+              {starLabels[hoverRating || rating]}
             </span>
           )}
         </div>
 
         {/* Optional Comment */}
-        <div style={{ marginBottom: "14px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-            <label htmlFor="feedback-comment" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)" }}>
+        <div className="feedback-comment-group">
+          <div className="feedback-label-row">
+            <label htmlFor="feedback-comment" className="feedback-label">
               Optional Comment or Suggestions
             </label>
-            <span style={{ fontSize: "0.75rem", color: comment.length > MAX_COMMENT_LENGTH ? "var(--color-rose, #f43f5e)" : "var(--text-muted, #64748b)" }}>
+            <span
+              className={`feedback-counter ${
+                comment.length >= MAX_COMMENT_LENGTH ? "limit-warn" : ""
+              }`}
+            >
               {comment.length} / {MAX_COMMENT_LENGTH}
             </span>
           </div>
           <textarea
             id="feedback-comment"
-            className="input-box"
-            rows={2}
+            className="feedback-textarea"
+            rows={3}
             value={comment}
             onChange={(e) => setComment(e.target.value.slice(0, MAX_COMMENT_LENGTH))}
             placeholder="What worked well? What could make the audit findings clearer?"
-            style={{ width: "100%", fontSize: "0.85rem", resize: "vertical" }}
+            maxLength={MAX_COMMENT_LENGTH}
           />
         </div>
 
-        {/* Contact Consent Checkbox */}
-        <div style={{ marginBottom: "14px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)" }}>
+        {/* Contact Consent Checkbox Card */}
+        <div style={{ marginBottom: "16px" }}>
+          <label
+            htmlFor="feedback-consent-checkbox"
+            className={`feedback-consent-card ${consentContact ? "checked" : ""}`}
+          >
             <input
+              id="feedback-consent-checkbox"
               type="checkbox"
+              className="feedback-checkbox"
               checked={consentContact}
               onChange={(e) => {
                 setConsentContact(e.target.checked);
@@ -212,69 +224,80 @@ export function PostAuditFeedbackWidget() {
                 }
               }}
             />
-            I consent to be contacted regarding this feedback
+            <div className="feedback-consent-text">
+              I consent to be contacted regarding this feedback
+              <span className="feedback-consent-sub">
+                Optional: Check this if you would like our product team to follow up on your suggestions.
+              </span>
+            </div>
           </label>
         </div>
 
         {/* Conditional Contact Fields (Only rendered when consent is true) */}
         {consentContact && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px", marginBottom: "14px" }}>
-            <div>
-              <label htmlFor="feedback-email" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: "4px" }}>
-                Work Email <span style={{ color: "var(--color-rose, #f43f5e)" }}>*</span>
+          <div className="feedback-contact-grid">
+            <div className="feedback-input-group">
+              <label htmlFor="feedback-email">
+                <span>
+                  Work Email <span className="feedback-required">*</span>
+                </span>
               </label>
               <input
                 id="feedback-email"
+                name="contactEmail"
                 type="email"
-                className="input-box"
+                className="feedback-input"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="procurement.officer@enterprise.com"
                 maxLength={255}
                 required
-                style={{ width: "100%", fontSize: "0.85rem" }}
+                autoComplete="email"
               />
             </div>
 
-            <div>
-              <label htmlFor="feedback-contact-name" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: "4px" }}>
-                Full Name <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>(Optional)</span>
+            <div className="feedback-input-group">
+              <label htmlFor="feedback-contact-name">
+                <span>Full Name</span>
+                <span className="feedback-optional">Optional</span>
               </label>
               <input
                 id="feedback-contact-name"
                 name="contactName"
                 type="text"
-                className="input-box"
+                className="feedback-input"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder="e.g. Ramesh Patel"
                 maxLength={MAX_NAME_LENGTH}
-                style={{ width: "100%", fontSize: "0.85rem" }}
+                autoComplete="name"
               />
             </div>
 
-            <div>
-              <label htmlFor="feedback-company-name" style={{ fontSize: "0.82rem", color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: "4px" }}>
-                Company Name <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>(Optional)</span>
+            <div className="feedback-input-group">
+              <label htmlFor="feedback-company-name">
+                <span>Company Name</span>
+                <span className="feedback-optional">Optional</span>
               </label>
               <input
                 id="feedback-company-name"
                 name="companyName"
                 type="text"
-                className="input-box"
+                className="feedback-input"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="e.g. Tata Consultancy Services"
                 maxLength={MAX_COMPANY_LENGTH}
-                style={{ width: "100%", fontSize: "0.85rem" }}
+                autoComplete="organization"
               />
             </div>
           </div>
         )}
 
         {errorMessage && (
-          <div style={{ color: "var(--color-rose, #f43f5e)", fontSize: "0.82rem", marginBottom: "12px" }}>
-            ⚠️ {errorMessage}
+          <div className="feedback-error-banner" role="alert">
+            <span aria-hidden="true">⚠️</span>
+            <span>{errorMessage}</span>
           </div>
         )}
 
@@ -282,11 +305,23 @@ export function PostAuditFeedbackWidget() {
         <div>
           <button
             type="submit"
-            className="btn btn-primary btn-sm"
+            className="feedback-submit-btn"
             disabled={status === "submitting" || rating === 0}
-            style={{ fontSize: "0.85rem", padding: "6px 16px" }}
           >
-            {status === "submitting" ? "Submitting..." : "Submit Feedback"}
+            {status === "submitting" ? (
+              <>
+                <span className="feedback-spinner" aria-hidden="true" />
+                <span>Submitting Feedback...</span>
+              </>
+            ) : (
+              <>
+                <span>Submit Feedback</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </>
+            )}
           </button>
         </div>
       </form>

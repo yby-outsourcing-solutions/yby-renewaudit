@@ -124,42 +124,52 @@ export function NegotiationDraftView({ result, terms }: NegotiationDraftViewProp
       </div>
 
       {/* Negotiation Items */}
-      {draft.items.map((item, idx) => (
-        <article className={`finding-card ${item.severity}`} key={`${item.ruleId}-${idx}`}>
-          <div className="finding-header">
-            <div>
-              <span className={`badge ${item.severity === "HIGH" ? "badge-rose" : "badge-amber"}`} style={{ marginRight: "8px" }}>
-                POSITION {idx + 1} • {item.ruleId}
-              </span>
-              <strong className="finding-title">{item.title}</strong>
+      {draft.items.map((item, idx) => {
+        const rawHash = item.sourceHash || "";
+        const compactHash = rawHash.length > 16 ? `${rawHash.substring(0, 16)}...` : rawHash;
+        return (
+          <article className={`finding-card ${item.severity}`} key={`${item.ruleId}-${idx}`}>
+            <div className="finding-header">
+              <div>
+                <span className={`badge ${item.severity === "HIGH" ? "badge-rose" : "badge-amber"}`} style={{ marginRight: "8px" }}>
+                  POSITION {idx + 1} • {item.ruleId}
+                </span>
+                <strong className="finding-title">{item.title}</strong>
+              </div>
+              <div className="finding-delta">{item.financialImpactFormatted}</div>
             </div>
-            <div className="finding-delta">{item.financialImpactFormatted}</div>
-          </div>
 
-          <div style={{ marginTop: "12px", background: "var(--surface-color, rgba(255,255,255,0.03))", padding: "14px", borderRadius: "8px", borderLeft: "3px solid var(--accent-cyan, #06b6d4)" }}>
-            <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>🏢 Vendor Position Statement:</div>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.5" }}>{item.negotiationPosition}</p>
-          </div>
+            <div style={{ marginTop: "12px", background: "var(--surface-color, rgba(255,255,255,0.03))", padding: "14px", borderRadius: "8px", borderLeft: "3px solid var(--accent-cyan, #06b6d4)" }}>
+              <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>🏢 Vendor Position Statement:</div>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.5" }}>{item.negotiationPosition}</p>
+            </div>
 
-          <div style={{ marginTop: "12px", background: "var(--surface-color, rgba(255,255,255,0.03))", padding: "14px", borderRadius: "8px", borderLeft: "3px solid var(--accent-emerald, #10b981)" }}>
-            <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>🎯 Suggested Actionable Ask:</div>
-            <p style={{ color: "var(--text-primary)", fontSize: "0.95rem", lineHeight: "1.5" }}>{item.suggestedAsk}</p>
-          </div>
+            <div style={{ marginTop: "12px", background: "var(--surface-color, rgba(255,255,255,0.03))", padding: "14px", borderRadius: "8px", borderLeft: "3px solid var(--accent-emerald, #10b981)" }}>
+              <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>🎯 Suggested Actionable Ask:</div>
+              <p style={{ color: "var(--text-primary)", fontSize: "0.95rem", lineHeight: "1.5" }}>{item.suggestedAsk}</p>
+            </div>
 
-          <div className="formula-box" style={{ marginTop: "12px" }}>
-            🧮 <strong>Evidence Formula Trail:</strong> {item.formulaTrail}
-          </div>
+            <div className="formula-box" style={{ marginTop: "12px" }}>
+              🧮 <strong>Evidence Formula Trail:</strong> {item.formulaTrail}
+            </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "12px" }}>
-            <div>📄 <strong>Source File:</strong> <span className="source-tag">{item.sourceFile}</span></div>
-            <div>🔑 <strong>SHA-256 Fingerprint:</strong> <span className="source-tag">{item.sourceHash.substring(0, 16)}...</span></div>
-            <div>📍 <strong>Ref:</strong> {item.locationRef}</div>
-            {item.supportingTerms.length > 0 && (
-              <div>🔒 <strong>Locked Terms:</strong> <span className="source-tag">{item.supportingTerms.join(", ")}</span></div>
-            )}
-          </div>
-        </article>
-      ))}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "12px" }}>
+              <div>📄 <strong>Source File:</strong> <span className="source-tag">{item.sourceFile}</span></div>
+              <div>
+                🔑 <strong>SHA-256 Fingerprint:</strong>{" "}
+                <span className="source-tag sha256-tag" title={rawHash}>
+                  <span className="sha256-screen">{compactHash}</span>
+                  <span className="sha256-print">{rawHash}</span>
+                </span>
+              </div>
+              <div>📍 <strong>Ref:</strong> {item.locationRef}</div>
+              {item.supportingTerms.length > 0 && (
+                <div>🔒 <strong>Locked Terms:</strong> <span className="source-tag">{item.supportingTerms.join(", ")}</span></div>
+              )}
+            </div>
+          </article>
+        );
+      })}
 
       <footer style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.1))", fontSize: "0.8rem", color: "var(--text-secondary)", textAlign: "center" }}>
         🛡️ <strong>Evidence Notice:</strong> This negotiation draft is generated deterministically from client-side SHA-256 file fingerprints and human-locked terms. Zero external API calls were made.

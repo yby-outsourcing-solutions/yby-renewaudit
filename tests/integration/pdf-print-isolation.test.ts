@@ -112,4 +112,40 @@ describe("PDF Print Isolation & Report Presentation Regression Suite", () => {
     expect(result.evidence[0].delta).toBe(2000);
     expect(result.evidence[1].delta).toBe(28);
   });
+
+  it("6. Complete 64-character SHA-256 fingerprint is preserved for PDF print without truncation in EvidencePack and NegotiationDraftView", () => {
+    const cssPath = path.resolve(__dirname, "../../src/styles.css");
+    const cssContent = fs.readFileSync(cssPath, "utf-8");
+
+    // CSS print block contains sha256-print with word-break and full visibility
+    const printBlockMatch = cssContent.match(/@media\s+print\s*\{([\s\S]*?)\n\}/);
+    expect(printBlockMatch).not.toBeNull();
+    const printBlock = printBlockMatch![1];
+
+    expect(printBlock).toContain(".sha256-screen");
+    expect(printBlock).toContain("display: none !important");
+    expect(printBlock).toContain(".sha256-print");
+    expect(printBlock).toContain("display: inline !important");
+    expect(printBlock).toContain("word-break: break-all !important");
+    expect(printBlock).toContain("overflow-wrap: anywhere !important");
+
+    // EvidencePack JSX renders both screen and print elements from shared rawHash
+    const evidencePath = path.resolve(__dirname, "../../src/components/evidence/EvidencePack.tsx");
+    const evidenceContent = fs.readFileSync(evidencePath, "utf-8");
+    expect(evidenceContent).toContain("const rawHash = e.sourceHash");
+    expect(evidenceContent).toContain("const compactHash = rawHash.length > 16");
+    expect(evidenceContent).toContain('className="source-tag sha256-tag" title={rawHash}');
+    expect(evidenceContent).toContain('<span className="sha256-screen">{compactHash}</span>');
+    expect(evidenceContent).toContain('<span className="sha256-print">{rawHash}</span>');
+
+    // NegotiationDraftView JSX renders both screen and print elements from shared rawHash
+    const negotiationPath = path.resolve(__dirname, "../../src/components/negotiation/NegotiationDraftView.tsx");
+    const negotiationContent = fs.readFileSync(negotiationPath, "utf-8");
+    expect(negotiationContent).toContain("const rawHash = item.sourceHash");
+    expect(negotiationContent).toContain("const compactHash = rawHash.length > 16");
+    expect(negotiationContent).toContain('className="source-tag sha256-tag" title={rawHash}');
+    expect(negotiationContent).toContain('<span className="sha256-screen">{compactHash}</span>');
+    expect(negotiationContent).toContain('<span className="sha256-print">{rawHash}</span>');
+  });
 });
+

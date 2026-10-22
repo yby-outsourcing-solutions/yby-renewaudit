@@ -42,37 +42,45 @@ export function EvidencePack({ result }: { result: ReconciliationResult }) {
         </div>
       )}
 
-      {result.evidence.map((e) => (
-        <article className={`finding-card ${e.severity}`} key={`${e.ruleId}-${e.sourceHash}-${e.formula}`}>
-          <div className="finding-header">
-            <div>
-              <span className={`badge ${e.severity === "HIGH" ? "badge-rose" : "badge-amber"}`} style={{ marginRight: "8px" }}>
-                {e.severity} RISK
-              </span>
-              <strong className="finding-title">{e.ruleId}: {e.title}</strong>
+      {result.evidence.map((e) => {
+        const rawHash = e.sourceHash || "";
+        const compactHash = rawHash.length > 16 ? `${rawHash.substring(0, 16)}...` : rawHash;
+        return (
+          <article className={`finding-card ${e.severity}`} key={`${e.ruleId}-${rawHash}-${e.formula}`}>
+            <div className="finding-header">
+              <div>
+                <span className={`badge ${e.severity === "HIGH" ? "badge-rose" : "badge-amber"}`} style={{ marginRight: "8px" }}>
+                  {e.severity} RISK
+                </span>
+                <strong className="finding-title">{e.ruleId}: {e.title}</strong>
+              </div>
+              <div className="finding-delta">
+                +{e.ruleId === "R1" ? `$${e.delta.toLocaleString()}` : `${e.delta} Seats`}
+              </div>
             </div>
-            <div className="finding-delta">
-              +{e.ruleId === "R1" ? `$${e.delta.toLocaleString()}` : `${e.delta} Seats`}
-            </div>
-          </div>
 
-          <div className="formula-box">
-            🧮 Formula Trail: {e.formula}
-          </div>
+            <div className="formula-box">
+              🧮 Formula Trail: {e.formula}
+            </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "12px" }}>
-            <div>
-              📄 <strong>Source File:</strong> <span className="source-tag">{e.source.fileName}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "12px" }}>
+              <div>
+                📄 <strong>Source File:</strong> <span className="source-tag">{e.source.fileName}</span>
+              </div>
+              <div>
+                🔑 <strong>SHA-256 Fingerprint:</strong>{" "}
+                <span className="source-tag sha256-tag" title={rawHash}>
+                  <span className="sha256-screen">{compactHash}</span>
+                  <span className="sha256-print">{rawHash}</span>
+                </span>
+              </div>
+              <div>
+                📍 <strong>Location Ref:</strong> Page {e.source.page ?? "N/A"} / Row {e.source.row ?? "N/A"}
+              </div>
             </div>
-            <div>
-              🔑 <strong>SHA-256 Fingerprint:</strong> <span className="source-tag">{e.sourceHash.substring(0, 16)}...</span>
-            </div>
-            <div>
-              📍 <strong>Location Ref:</strong> Page {e.source.page ?? "N/A"} / Row {e.source.row ?? "N/A"}
-            </div>
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
       <PostAuditFeedbackWidget />
     </section>
   );

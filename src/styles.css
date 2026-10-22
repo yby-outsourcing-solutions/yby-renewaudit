@@ -316,6 +316,20 @@ table.custom-table td {
   color: var(--accent-cyan);
 }
 
+.sha256-print {
+  display: none;
+}
+
+.sha256-screen {
+  display: inline;
+}
+
+.sha256-tag {
+  font-family: monospace;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
 /* Buttons */
 .btn {
   font-family: inherit;
@@ -494,7 +508,8 @@ textarea.input-box:focus {
     font-size: 0.9rem !important;
   }
 
-  .evidence-pack-panel {
+  .evidence-pack-panel,
+  .panel-card {
     background: white !important;
     border: 1px solid #cbd5e1 !important;
     color: #0f172a !important;
@@ -555,6 +570,28 @@ textarea.input-box:focus {
     background: #e2e8f0 !important;
     color: #0f172a !important;
     font-weight: 600 !important;
+  }
+
+  .source-tag.sha256-tag {
+    display: inline-block !important;
+    max-width: 100% !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+  }
+
+  .sha256-screen {
+    display: none !important;
+  }
+
+  .sha256-print {
+    display: inline !important;
+    font-family: monospace !important;
+    font-size: 0.76rem !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    letter-spacing: -0.2px !important;
+    color: #0f172a !important;
   }
 }
 

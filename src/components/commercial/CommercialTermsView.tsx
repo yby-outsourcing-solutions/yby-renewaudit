@@ -4,14 +4,68 @@ interface CommercialTermsViewProps {
   identifiedSavings?: number;
 }
 
+export const INVALID_FEE_SENTINEL = "N/A — Audit Fee is zero/invalid";
+
+export interface CommercialROISimulation {
+  netCustomerValueINR: number;
+  customerROI: string;
+  roiNumeric: number | null;
+  formattedNetValue: string;
+  formattedROI: string;
+  isInvalidFee: boolean;
+}
+
+export function calculateCommercialROI(
+  savingsINR: number,
+  auditFee: number = 2999
+): CommercialROISimulation {
+  const safeSavings = Number.isFinite(savingsINR) ? savingsINR : 0;
+  const isInvalidFee = !Number.isFinite(auditFee) || auditFee <= 0;
+
+  if (isInvalidFee) {
+    const feeFallback = Number.isFinite(auditFee) && auditFee >= 0 ? auditFee : 0;
+    const netCustomerValueINR = safeSavings - feeFallback;
+    const formattedNetValue =
+      netCustomerValueINR < 0
+        ? `-₹${Math.abs(netCustomerValueINR).toLocaleString("en-IN")}`
+        : `₹${netCustomerValueINR.toLocaleString("en-IN")}`;
+
+    return {
+      netCustomerValueINR,
+      customerROI: "N/A",
+      roiNumeric: null,
+      formattedNetValue,
+      formattedROI: INVALID_FEE_SENTINEL,
+      isInvalidFee: true
+    };
+  }
+
+  const netCustomerValueINR = safeSavings - auditFee;
+  const roiNumeric = (netCustomerValueINR / auditFee) * 100;
+  const customerROI = roiNumeric.toFixed(2);
+  const formattedNetValue =
+    netCustomerValueINR < 0
+      ? `-₹${Math.abs(netCustomerValueINR).toLocaleString("en-IN")}`
+      : `₹${netCustomerValueINR.toLocaleString("en-IN")}`;
+  const formattedROI = `${customerROI}%`;
+
+  return {
+    netCustomerValueINR,
+    customerROI,
+    roiNumeric,
+    formattedNetValue,
+    formattedROI,
+    isInvalidFee: false
+  };
+}
+
 export function CommercialTermsView({ identifiedSavings = 160000 }: CommercialTermsViewProps) {
   // Identified savings default set to ₹1,60,000 (~$2,000)
   const [customSavingsINR, setCustomSavingsINR] = useState<number>(identifiedSavings || 160000);
 
   // V1 Introductory Fixed Fee Model:
   const singleAuditPrice = 2999;
-  const netCustomerSavingsINR = Math.max(customSavingsINR - singleAuditPrice, 0);
-  const customerROI = customSavingsINR > 0 ? ((netCustomerSavingsINR / singleAuditPrice) * 100).toFixed(0) : "0";
+  const simulation = calculateCommercialROI(customSavingsINR, singleAuditPrice);
 
   return (
     <section className="panel-card">
@@ -61,13 +115,36 @@ export function CommercialTermsView({ identifiedSavings = 160000 }: CommercialTe
           </div>
           <div className="metric-card">
             <div className="metric-label">Net Customer Value Retained</div>
-            <div className="metric-value emerald">₹{netCustomerSavingsINR.toLocaleString("en-IN")}</div>
-            <div className="metric-sub">Net Savings Retained by Customer</div>
+            <div className={`metric-value ${simulation.netCustomerValueINR >= 0 ? "emerald" : "rose"}`}>
+              {simulation.formattedNetValue}
+            </div>
+            <div className="metric-sub">
+              {simulation.netCustomerValueINR >= 0 ? "Net Savings Retained by Customer" : "Net Deficit (Audit Cost Exceeds Savings)"}
+            </div>
           </div>
           <div className="metric-card">
             <div className="metric-label">Customer ROI Multiplier</div>
-            <div className="metric-value amber">{customerROI}% ROI</div>
-            <div className="metric-sub">Return on Single Audit Fee</div>
+            <div
+              className={`metric-value ${
+                simulation.isInvalidFee
+                  ? "amber"
+                  : simulation.roiNumeric! >= 0
+                  ? simulation.roiNumeric! > 0
+                    ? "emerald"
+                    : "cyan"
+                  : "rose"
+              }`}
+              style={simulation.isInvalidFee ? { fontSize: "1.05rem", lineHeight: 1.3 } : undefined}
+            >
+              {simulation.formattedROI}
+            </div>
+            <div className="metric-sub">
+              {simulation.isInvalidFee
+                ? "Audit Fee Must Be Greater Than Zero"
+                : simulation.roiNumeric! >= 0
+                ? "Return on Single Audit Fee"
+                : "Negative Net Yield on Audit Fee"}
+            </div>
           </div>
         </div>
       </div>

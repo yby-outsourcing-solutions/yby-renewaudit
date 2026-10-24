@@ -448,6 +448,27 @@ textarea.input-box:focus {
 
 /* Print Styles & Audit Report Isolation */
 @media print {
+  /* ── Override all dark-theme CSS custom properties so every inline var() reference
+     resolves to a print-safe (dark-on-white) value.
+     This is the single source of truth for print color tokens — no component edits needed. ── */
+  :root {
+    --text-primary:    #0f172a !important;   /* was #f8fafc (white)  → now near-black   */
+    --text-secondary:  #475569 !important;   /* was #94a3b8 (silver) → now slate-600    */
+    --text-muted:      #64748b !important;   /* was #64748b          → keep readable    */
+    --bg-primary:      #ffffff !important;
+    --bg-card:         #ffffff !important;
+    --bg-card-hover:   #f8fafc !important;
+    --border-glass:    #cbd5e1 !important;
+    --border-highlight:#94a3b8 !important;
+    --surface-color:   #f1f5f9 !important;   /* inline fallback in NegotiationDraftView  */
+    /* Keep accent colours (used for metric values + badges) at vivid print-safe hues */
+    --accent-rose:     #b91c1c !important;
+    --accent-indigo:   #4338ca !important;
+    --accent-emerald:  #047857 !important;
+    --accent-cyan:     #0e7490 !important;
+    --accent-amber:    #92400e !important;
+  }
+
   /* 1. Strict Isolation: Hide all administrative modals, navigation, commercial upgrade elements, and non-report controls */
   .no-print,
   .license-modal-container,
@@ -604,6 +625,53 @@ textarea.input-box:focus {
     overflow-wrap: anywhere !important;
     letter-spacing: -0.2px !important;
     color: #0f172a !important;
+  }
+
+  /* ── Metric cards: flatten dark glassmorphism to white print cards ── */
+  .metrics-grid {
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .metric-card {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    padding: 14px !important;
+  }
+
+  .metric-label {
+    color: #475569 !important;
+  }
+
+  .metric-sub {
+    color: #64748b !important;
+  }
+
+  /* Metric value accent colours already resolved via :root overrides above */
+
+  /* ── Inline position/ask sub-blocks in NegotiationDraftView ──
+     These use inline style="background: var(--surface-color,...)" which resolves to
+     #f1f5f9 via the :root override, so they get a visible light background.
+     Ensure their text (var(--text-primary) / var(--text-secondary)) is dark. ── */
+  .finding-card p,
+  .finding-card div {
+    color: #0f172a !important;
+  }
+
+  /* badge-cyan (Human Lock status) */
+  .badge-cyan {
+    background: #ecfeff !important;
+    color: #155e75 !important;
+    border: 1px solid #a5f3fc !important;
+  }
+
+  /* Footer evidence notice */
+  footer {
+    color: #475569 !important;
+    border-top: 1px solid #cbd5e1 !important;
   }
 }
 

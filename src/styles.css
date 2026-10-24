@@ -467,12 +467,22 @@ textarea.input-box:focus {
     color: #0f172a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    /* Fix: body min-height:100vh causes a blank first page in print */
+    min-height: auto !important;
   }
 
   .container {
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    min-height: auto !important;
+  }
+
+  /* Fix: collapse any section/div min-height that could push content off page 1 */
+  section,
+  .app-tab-content,
+  .tab-content {
+    min-height: auto !important;
   }
 
   header.app-header {
@@ -515,7 +525,9 @@ textarea.input-box:focus {
     color: #0f172a !important;
     box-shadow: none !important;
     padding: 24px !important;
-    page-break-inside: avoid;
+    /* Fix: page-break-inside:avoid on a large panel forces content to page 2.
+       Removed from the outer wrapper; kept only on small .finding-card blocks. */
+    min-height: auto !important;
   }
 
   .panel-header h2 {

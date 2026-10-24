@@ -170,6 +170,39 @@ export function LegalFooterModal({ initialTab = "contact", onClose }: LegalFoote
                 <li><strong>🔑 SHA-256 Web Crypto Fingerprinting:</strong> Document authenticity is fingerprinted locally on your device using Web Crypto API.</li>
                 <li><strong>📡 Outbound Licensing Privacy Boundary:</strong> Outbound licensing verification contains strictly <code>{"{ licenseKey, deviceHash }"}</code>. Non-licensing metadata is strictly blocked.</li>
               </ul>
+
+              {/* G7 Feedback Ledger Retention Policy */}
+              <div style={{ marginTop: "20px", padding: "16px", background: "rgba(99, 102, 241, 0.06)", borderRadius: "10px", border: "1px solid rgba(99, 102, 241, 0.2)" }}>
+                <h4 style={{ color: "#a5b4fc", marginBottom: "10px", fontSize: "0.95rem" }}>
+                  📋 Feedback Ledger Data Retention &amp; Privacy Governance
+                </h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ padding: "12px", background: "rgba(245, 158, 11, 0.05)", borderRadius: "8px", border: "1px solid rgba(245, 158, 11, 0.15)" }}>
+                    <strong style={{ color: "#fbbf24", fontSize: "0.85rem" }}>🟡 Consent-Enabled Contact Records — 180-Day Retention</strong>
+                    <p style={{ margin: "6px 0 0 0", fontSize: "0.85rem" }}>
+                      When users voluntarily opt in to post-audit correspondence (consent enabled), direct contact identifiers
+                      (work email, full name, company name) are retained for a maximum of <strong>180 calendar days</strong> solely
+                      for commercial partner verification and enterprise procurement follow-up; thereafter all contact identifiers
+                      are permanently nullified.
+                    </p>
+                  </div>
+                  <div style={{ padding: "12px", background: "rgba(16, 185, 129, 0.05)", borderRadius: "8px", border: "1px solid rgba(16, 185, 129, 0.15)" }}>
+                    <strong style={{ color: "#34d399", fontSize: "0.85rem" }}>🟢 Anonymous Feedback Records — 365-Day Retention</strong>
+                    <p style={{ margin: "6px 0 0 0", fontSize: "0.85rem" }}>
+                      Anonymous feedback records (consent disabled) — comprising numerical ratings, redacted qualitative commentary,
+                      and anonymized HMAC IP hashes — are retained for up to <strong>365 calendar days</strong> for statistical
+                      audit-engine optimization before deletion.
+                    </p>
+                  </div>
+                  <div style={{ padding: "12px", background: "rgba(244, 63, 94, 0.05)", borderRadius: "8px", border: "1px solid rgba(244, 63, 94, 0.15)" }}>
+                    <strong style={{ color: "#fb7185", fontSize: "0.85rem" }}>🔴 Contract &amp; Audit Data — Never Stored</strong>
+                    <p style={{ margin: "6px 0 0 0", fontSize: "0.85rem" }}>
+                      Contract files, clauses, and monetary findings are <strong>never stored</strong>. All audit calculations
+                      execute exclusively in-browser and are permanently discarded when the session ends.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
